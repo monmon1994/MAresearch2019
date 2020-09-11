@@ -1,0 +1,351 @@
+---
+title: "MA_Regressions"
+author: "Monique Bennett"
+date: "16/01/2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=F, error=F, message=F}
+library(car)
+library(stargazer)
+library(effects)
+library(readxl)
+library(dplyr)
+library(xtable)
+library(tikzDevice)
+library(wordcloud)
+library(jtools)
+```
+
+```{r}
+load("MA_DATASET.RData")
+
+row.names(wb_epi_df) <- wb_epi_df$iso3c
+
+
+```
+
+### Summary Table
+
+```{r}
+sum_df <- data.frame(wb_epi_df$EPI2018Score, wb_epi_df$lied_dummy, 
+                     wb_epi_df$VA.EST, wb_epi_df$PV.EST,wb_epi_df$GE.EST, 
+                     wb_epi_df$RQ.EST, wb_epi_df$RL.EST, wb_epi_df$CC.EST, 
+                     wb_epi_df$resource_rents_log, wb_epi_df$trade_log, 
+                     wb_epi_df$GDP.lpc, log(wb_epi_df$PopDensity))
+
+names(sum_df) <- c("EPI", "Democracy dummy", "Voice and Accountability",
+                   "Political stability","Gov Effectiveness", 
+                   "Regulatory Quality", "Rule of Law", "Corruption",
+                   "log(Resource Rents)", "log(Trade Open)", "log(GDPpc)", "log(PopDensity)")
+
+summary(sum_df)
+```
+
+```{r results='asis'}
+stargazer(sum_df, type = "latex", digits = 2, float = F, title = "Descrptive Statistics", summary.stat = c("mean", "median","sd","min", "max","n"))
+```
+
+### Correlation Matrix
+```{r results='asis'}
+
+cor.df <- data.frame(wb_epi_df$EPI2018Score, wb_epi_df$lied_dummy, 
+                     wb_epi_df$VA.EST, wb_epi_df$PV.EST,wb_epi_df$GE.EST, 
+                     wb_epi_df$RQ.EST, wb_epi_df$RL.EST, wb_epi_df$CC.EST, 
+                     wb_epi_df$resource_rents_log, wb_epi_df$trade_log, 
+                     wb_epi_df$GDP.lpc, log(wb_epi_df$PopDensity))
+
+
+names(cor.df) <- c("EPI", "LIED", "VA", "PV", "GE", "RQ", "RL", "CC", "Resource_rents", "Trade", "GDPpc", "PopDlog")
+
+cor.mat <- round(cor(cor.df, use = "complete.obs"), digits = 2)
+upper.cor <- cor.mat
+upper.cor[upper.tri(cor.mat)] <- ""
+upper.cor <- as.data.frame(upper.cor)
+upper.cor
+
+stargazer(round(cor(cor.df, use = "complete.obs"), digits = 2))
+
+```
+
+## Regressions
+### LM VA
+
+```{r}
+lm.1 <- lm(EPI2018Score ~ VA.EST + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.1, ask=T))
+
+par(mfrow=c(2, 2))
+plot(lm.1)
+```
+
+### LM PV
+
+```{r}
+lm.2 <- lm(EPI2018Score ~ PV.EST + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.2, ask=FALSE)) # effects plot
+
+par(mfrow=c(2, 2))
+plot(lm.2)
+```
+
+### LM Gov Effectiveness
+
+```{r}
+lm.3 <- lm(EPI2018Score ~ GE.EST + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.3, ask=FALSE)) # effects plot
+
+pdf(file = "effect plot GE", width = 6, height = 4.3)
+effect_plot(lm.3, pred = GE.EST, interval = T, plot.points = T, main.title = "Effect of government effectiveness on EPI scores",  jitter = 0.1, data = wb_epi_df)
+dev.off()
+
+par(mfrow=c(2, 2))
+plot(lm.3)
+```
+
+### LM Reg Quality
+
+```{r}
+lm.4 <- lm(EPI2018Score ~ RQ.EST  + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.4, ask=FALSE))
+
+par(mfrow=c(2, 2))
+plot(lm.4)
+```
+
+## RL
+
+```{r}
+lm.5 <- lm(EPI2018Score ~ RL.EST  + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.5, ask=FALSE))
+
+par(mfrow=c(2, 2))
+plot(lm.5)
+```
+
+### Political Violence
+
+```{r}
+lm.6 <- lm(EPI2018Score ~ CC.EST  + lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+plot(allEffects(lm.6, ask=FALSE))
+
+par(mfrow=c(2, 2))
+plot(lm.6)
+```
+
+### Only dummy
+
+```{r}
+lm.7 <- lm(EPI2018Score ~ lied_dummy + trade_log + 
+               log(NY.GDP.PCAP.CD) + resource_rents_log + log(PopDensity), 
+           data = wb_epi_df)
+
+par(mfrow=c(2, 2))
+plot(lm.7)
+```
+
+## Regression Table
+
+```{r results='asis'}
+stargazer(lm.1, lm.2, lm.3, lm.4, lm.5, lm.6, type = "latex", 
+          digits = 2, float = F,  no.space = TRUE, column.sep.width = "1pt", font.size = "small")
+```
+
+### Regression Plots
+
+#### VA avPlot
+```{r}
+avPlot(lm.1, variable = "VA.EST", id = TRUE)
+```
+
+#### PV
+```{r}
+avPlot(lm.2, variable = "PV.EST", id = TRUE)
+```
+
+#### Government Effectiveness 
+```{r}
+pdf(file = "avPlot_GE", width = 10, height = 8)
+avPlot(lm.3, variable = "GE.EST", 
+       id=list(n=101, cex=1, col=carPalette()[1], 
+               col.lines = carPalette()[2], location="lr"))
+dev.off()
+
+textplot( words = "iso3c", new = T)
+
+list(abs(residuals(lm.3, type="pearson")), "x")
+
+pdf(file = "avPlot_gdp_GE.pdf")
+avPlots(lm.3, terms = "log(NY.GDP.PCAP.CD)", id=list(n=101, cex=1, col=carPalette()[1], col.lines = carPalette()[2], location="lr"))
+dev.off()
+
+summary(wb_epi_df)
+
+
+plot(GE.EST ~ EPI2018Score, data = wb_epi_df)
+abline(lm(GE.EST ~ EPI2018Score, data = wb_epi_df))
+
+    ```
+
+    ##### Regulatory Quality
+```{r}
+
+pdf(file = "avPlot_RQ", width = 8, height = 11)
+avPlot(lm.4, variable = "RQ.EST", id=list(n=51, cex=1, col=carPalette()[1], location="lr"))
+dev.off()
+
+pdf(file = "avPlot_gdp_RQ", width = 8, height = 11)
+avPlots(lm.4, terms = "log(NY.GDP.PCAP.CD)", id=list(method=list(abs(residuals(lm.4, type="pearson")), "x"), n=101, cex=1, col=carPalette()[1], location="lr"))
+dev.off()
+
+```
+
+#### Control of Corruption
+```{r}
+avPlot(lm.5, variable = "CC.EST", id = TRUE)
+```
+
+#### Political Violence
+```{r}
+avPlot(lm.6, variable = "PV.EST", id = TRUE)
+```
+
+#### LIED 
+```{r}
+avPlot(lm.7, variable = "lied_dummy", id = TRUE)
+```
+### Influence Plots
+#### LM Rule of Law
+```{r}
+influencePlot(lm.1, id=list(n=3, cex=0.6))
+```
+
+#### LM Voice and Acc 
+```{r}
+influencePlot(lm.2)
+```
+
+#### LM Gov Effectiveness
+```{r}
+influencePlot(lm.3)
+```
+
+#### LM Regulatory Quality
+```{r}
+influencePlot(lm.4) 
+```
+
+#### LM Corruption
+```{r}
+influencePlot(lm.5)
+```
+
+#### LM Political Violence
+```{r}
+influencePlot(lm.6)
+
+```
+
+#### LM Only dummy
+```{r}
+influencePlot(lm.7)
+```
+
+## Residual Plots
+#### LM RL
+```{r}
+par(mfrow=c(2, 2)) 
+residualPlots(lm.1, cex=0.5, test=FALSE, layout=NA, ask=FALSE)
+```
+#### LM VA
+
+```{r}
+par(mfrow=c(2, 2)) # by default one per predictor + fitted values
+residualPlots(lm.2, cex=0.5, test=FALSE, layout=NA, ask=FALSE)
+```
+
+#### LM GE
+```{r}
+par(mfrow=c(2, 2)) 
+residualPlots(lm.3, cex=0.5, test=FALSE, layout=NA, ask=FALSE)
+```
+
+#### LM RQ
+```{r}
+lm.3a <- lm(EPI2018Score ~ GE.EST + lied_dummy + trade_log + log(NY.GDP.PCAP.CD) +
+              resource_rents_log, data = wb_epi_df)
+
+plot(lm.3a)
+plot(lm.3)
+
+anova(lm.3, lm.3a)
+par(mfrow=c(2, 2)) 
+residualPlots(lm.3, cex=0.5, test=FALSE, layout=NA, ask=FALSE)
+```
+
+#### LM CC
+```{r}
+par(mfrow=c(2, 2)) # by default one per predictor + fitted values
+residualPlots(lm.4, cex=0.5, test=FALSE, layout=NA, ask=FALSE)
+```
+
+### NCVTEST
+```{r}
+ncvTest(lm.1)
+```
+
+```{r}
+ncvTest(lm.2)
+```
+
+```{r}
+ncvTest(lm.3)
+```
+
+```{r}
+ncvTest(lm.4)
+```
+
+```{r}
+ncvTest(lm.5)
+```
+
+```{r}
+ncvTest(lm.6)
+```
+
+```{r}
+ncvTest(lm.7)
+```
+
+### ANOVA
+
+```{r}
+
+```
+
